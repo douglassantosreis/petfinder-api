@@ -15,10 +15,13 @@ import (
 	moderationuc "github.com/yourname/go-backend/internal/usecase/moderation"
 )
 
-const (
-	minConfidence     float32 = 70.0
-	animalParentLabel         = "Animal"
-)
+const minConfidence float32 = 70.0
+
+// AWS Rekognition label taxonomy uses both names depending on model version.
+var animalLabels = map[string]bool{
+	"Animal":          true,
+	"Animals and Pets": true,
+}
 
 type RekognitionConfig struct {
 	Region          string
@@ -58,8 +61,8 @@ func (m *RekognitionModerator) Moderate(ctx context.Context, filename string) (m
 		MinConfidence: aws.Float32(minConfidence),
 	})
 	if err != nil {
-		slog.Warn("rekognition DetectModerationLabels failed, auto-approving", "filename", filename, "error", err)
-		return moderationuc.Result{Approved: true}, nil
+		slog.Error("rekognition DetectModerationLabels failed, rejecting for safety", "filename", filename, "error", err)
+		return moderationuc.Result{Approved: false, Reason: "moderation check unavailable"}, nil
 	}
 	if len(modOut.ModerationLabels) > 0 {
 		reason := aws.ToString(modOut.ModerationLabels[0].Name)
@@ -72,9 +75,11 @@ func (m *RekognitionModerator) Moderate(ctx context.Context, filename string) (m
 		MinConfidence: aws.Float32(minConfidence),
 	})
 	if err != nil {
-		slog.Warn("rekognition DetectLabels failed, auto-approving", "filename", filename, "error", err)
-		return moderationuc.Result{Approved: true}, nil
+		slog.Error("rekognition DetectLabels failed, rejecting for safety", "filename", filename, "error", err)
+		return moderationuc.Result{Approved: false, Reason: "label detection unavailable"}, nil
 	}
+
+	slog.Info("rekognition: labels detected", "filename", filename, "count", len(labelsOut.Labels))
 	if !hasAnimal(labelsOut.Labels) {
 		slog.Info("image rejected: no animal detected", "filename", filename)
 		return moderationuc.Result{Approved: false, Reason: "no animal detected in image"}, nil
@@ -86,11 +91,15 @@ func (m *RekognitionModerator) Moderate(ctx context.Context, filename string) (m
 
 func hasAnimal(labels []types.Label) bool {
 	for _, label := range labels {
-		if aws.ToString(label.Name) == animalParentLabel {
+		name := aws.ToString(label.Name)
+		if animalLabels[name] {
+			slog.Debug("rekognition: animal label matched", "label", name)
 			return true
 		}
 		for _, parent := range label.Parents {
-			if aws.ToString(parent.Name) == animalParentLabel {
+			p := aws.ToString(parent.Name)
+			if animalLabels[p] {
+				slog.Debug("rekognition: animal label matched via parent", "label", name, "parent", p)
 				return true
 			}
 		}
