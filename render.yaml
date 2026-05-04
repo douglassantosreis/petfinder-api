@@ -7,7 +7,6 @@ services:
     branch: main
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
-    maxShutdownDelaySeconds: 10
 
     envVars:
       - key: PORT
