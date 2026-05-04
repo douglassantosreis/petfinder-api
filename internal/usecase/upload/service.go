@@ -66,10 +66,15 @@ func (s *Service) Upload(ctx context.Context, userID string, src io.Reader, size
 		return domain.Upload{}, ErrUnsupportedType
 	}
 	filename := uuid.NewString() + ext
+
+	slog.Info("upload: storing file", "filename", filename, "content_type", contentType, "size_bytes", size)
 	url, err := s.storage.Upload(ctx, filename, src)
 	if err != nil {
+		slog.Error("upload: storage failed", "filename", filename, "error", err)
 		return domain.Upload{}, err
 	}
+	slog.Info("upload: stored", "filename", filename, "url", url)
+
 	meta := domain.Upload{
 		ID:               uuid.NewString(),
 		UserID:           userID,
@@ -78,10 +83,14 @@ func (s *Service) Upload(ctx context.Context, userID string, src io.Reader, size
 		ModerationStatus: domain.ModerationPending,
 		CreatedAt:        time.Now().UTC(),
 	}
+
 	if err := s.repo.Create(ctx, meta); err != nil {
+		slog.Error("upload: repo create failed, rolling back storage", "upload_id", meta.ID, "filename", filename, "error", err)
 		_ = s.storage.Delete(ctx, filename)
 		return domain.Upload{}, err
 	}
+
+	slog.Info("upload: metadata saved", "upload_id", meta.ID, "user_id", userID)
 	s.moderator.ModerateAsync(meta)
 	return meta, nil
 }
