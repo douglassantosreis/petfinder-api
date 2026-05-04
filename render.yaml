@@ -38,7 +38,7 @@ services:
       - key: S3_BUCKET
         sync: false
       - key: S3_REGION
-        value: auto        # "auto" para Cloudflare R2; use "us-east-1" para AWS
+        sync: false        # e.g. "us-east-1" for AWS S3; "auto" for Cloudflare R2
       - key: S3_ENDPOINT
         sync: false        # vazio para AWS; URL do R2 para Cloudflare
       - key: AWS_ACCESS_KEY_ID
