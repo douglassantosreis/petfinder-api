@@ -2,8 +2,10 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/yourname/go-backend/internal/domain/user"
 	authuc "github.com/yourname/go-backend/internal/usecase/auth"
@@ -123,7 +125,7 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	if state == "" {
 		slog.Warn("oauth callback: state absent, CSRF protection skipped", "raw_query", r.URL.RawQuery)
 	}
-	u, accessToken, refreshToken, err := h.service.OAuthCallback(r.Context(), code, state)
+	_, accessToken, refreshToken, err := h.service.OAuthCallback(r.Context(), code, state)
 	if err != nil {
 		if errors.Is(err, user.ErrUserBanned) {
 			http.Error(w, err.Error(), http.StatusLocked)
@@ -132,11 +134,12 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	respondJSON(w, http.StatusOK, OAuthCallbackResponse{
-		User:         toUserResponse(u),
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	})
+	redirectURL := fmt.Sprintf(
+		"petfinder://auth/callback?accessToken=%s&refreshToken=%s",
+		url.QueryEscape(accessToken),
+		url.QueryEscape(refreshToken),
+	)
+	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
 // Refresh godoc
