@@ -1,0 +1,14 @@
+.git
+.gitignore
+.cursor
+agent-transcripts
+infra-local
+tmp
+bin
+dist
+*.log
+*.out
+*.exe
+*.test
+coverage.*
+node_modules

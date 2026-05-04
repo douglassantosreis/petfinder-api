@@ -1,0 +1,23 @@
+# Binaries
+/bin/
+*.exe
+
+# Local env (contains secrets — use .env.example as reference)
+infra-local/.env
+
+# Uploaded files (local storage)
+uploads/
+
+# Service account credentials (NEVER commit)
+credentials/
+*-sa.json
+*service-account*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
