@@ -49,6 +49,7 @@ func NewRekognitionModerator(ctx context.Context, cfg RekognitionConfig) (*Rekog
 }
 
 func (m *RekognitionModerator) Moderate(ctx context.Context, filename string) (moderationuc.Result, error) {
+	slog.Info("rekognition: moderating", "bucket", m.bucket, "filename", filename)
 	s3obj := &types.S3Object{Bucket: aws.String(m.bucket), Name: aws.String(filename)}
 	img := &types.Image{S3Object: s3obj}
 
@@ -79,6 +80,7 @@ func (m *RekognitionModerator) Moderate(ctx context.Context, filename string) (m
 		return moderationuc.Result{Approved: false, Reason: "no animal detected in image"}, nil
 	}
 
+	slog.Info("rekognition: image approved", "filename", filename)
 	return moderationuc.Result{Approved: true}, nil
 }
 
