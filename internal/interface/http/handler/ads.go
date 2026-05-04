@@ -19,14 +19,17 @@ func NewReportHandler(service *aduc.Service) *ReportHandler {
 
 // Create godoc
 // @Summary Create found animal report
+// @Description Creates a report for a found animal. Upload photos first via POST /v1/uploads
+// @Description and pass the returned URLs in the photos array. The report is publicly visible
+// @Description only after all photos pass Rekognition moderation (status changes to "approved").
 // @Tags reports
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param payload body CreateReportRequest true "Report payload"
 // @Success 201 {object} ReportResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "invalid payload"
+// @Failure 401 {object} ErrorResponse "missing or invalid token"
 // @Failure 500 {object} ErrorResponse
 // @Router /v1/reports [post]
 func (h *ReportHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +64,9 @@ func (h *ReportHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path string true "Report ID"
 // @Success 200 {object} ReportResponse
-// @Failure 404 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse "missing or invalid token"
+// @Failure 404 {object} ErrorResponse "report not found"
+// @Failure 500 {object} ErrorResponse
 // @Router /v1/reports/{id} [get]
 func (h *ReportHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
@@ -113,6 +118,7 @@ func (h *ReportHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Patch godoc
 // @Summary Update found animal report
+// @Description Only the report owner can update. To replace photos, send all desired URLs (old + new).
 // @Tags reports
 // @Security BearerAuth
 // @Accept json
@@ -120,9 +126,10 @@ func (h *ReportHandler) List(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "Report ID"
 // @Param payload body PatchReportRequest true "Report payload"
 // @Success 200 {object} ReportResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 403 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "invalid payload"
+// @Failure 401 {object} ErrorResponse "missing or invalid token"
+// @Failure 403 {object} ErrorResponse "not the owner"
+// @Failure 500 {object} ErrorResponse
 // @Router /v1/reports/{id} [patch]
 func (h *ReportHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
@@ -149,13 +156,15 @@ func (h *ReportHandler) Patch(w http.ResponseWriter, r *http.Request) {
 
 // Resolve godoc
 // @Summary Mark report as resolved
+// @Description Only the report owner can resolve. Use this when the pet was returned to its owner.
 // @Tags reports
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Report ID"
 // @Success 200 {object} ReportResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 403 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse "missing or invalid token"
+// @Failure 403 {object} ErrorResponse "not the owner"
+// @Failure 500 {object} ErrorResponse
 // @Router /v1/reports/{id}/resolve [post]
 func (h *ReportHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
@@ -170,13 +179,15 @@ func (h *ReportHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 
 // Archive godoc
 // @Summary Archive report
+// @Description Only the report owner can archive. Archived reports are hidden from public listings.
 // @Tags reports
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Report ID"
 // @Success 200 {object} ReportResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 403 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse "missing or invalid token"
+// @Failure 403 {object} ErrorResponse "not the owner"
+// @Failure 500 {object} ErrorResponse
 // @Router /v1/reports/{id}/archive [post]
 func (h *ReportHandler) Archive(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())

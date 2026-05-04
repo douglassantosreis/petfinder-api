@@ -17,20 +17,26 @@ func NewUploadHandler(service *uploaduc.Service) *UploadHandler {
 }
 
 type UploadResponse struct {
-	URL string `json:"url"`
+	ID               string `json:"id"`
+	URL              string `json:"url"`
+	ModerationStatus string `json:"moderationStatus"`
 }
 
 // Upload godoc
 // @Summary Upload a photo
+// @Description Uploads an image and returns its URL and moderation status.
+// @Description The photo starts as "pending" and is approved/rejected asynchronously by Rekognition.
+// @Description Only animal images are accepted. Use the returned URL in the report's photos field.
 // @Tags uploads
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
 // @Param file formData file true "Image file (jpeg, png or webp, max 5 MB)"
 // @Success 201 {object} UploadResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Failure 413 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "unsupported file type or malformed request"
+// @Failure 401 {object} ErrorResponse "missing or invalid token"
+// @Failure 413 {object} ErrorResponse "file exceeds maximum allowed size"
+// @Failure 500 {object} ErrorResponse
 // @Router /v1/uploads [post]
 func (h *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	maxBytes := h.service.MaxBytes()
@@ -60,7 +66,7 @@ func (h *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := middleware.UserIDFromContext(r.Context())
-	url, err := h.service.Upload(r.Context(), userID, file, header.Size, contentType)
+	meta, err := h.service.Upload(r.Context(), userID, file, header.Size, contentType)
 	if err != nil {
 		switch err {
 		case uploaduc.ErrFileTooLarge:
@@ -73,5 +79,9 @@ func (h *UploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, UploadResponse{URL: url})
+	respondJSON(w, http.StatusCreated, UploadResponse{
+		ID:               meta.ID,
+		URL:              meta.URL,
+		ModerationStatus: string(meta.ModerationStatus),
+	})
 }

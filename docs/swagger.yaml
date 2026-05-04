@@ -1,148 +1,243 @@
 basePath: /
 definitions:
-  ad.GeoPoint:
-    properties:
-      coordinates:
-        items:
-          type: number
-        type: array
-      type:
-        type: string
-    type: object
-  ad.Status:
-    enum:
-    - open
-    - resolved
-    - archived
-    type: string
-    x-enum-varnames:
-    - StatusOpen
-    - StatusResolved
-    - StatusArchived
   handler.ConversationResponse:
     properties:
       id:
+        example: 64a1f2c3d4e5f6789abcdef2
         type: string
       lastMessageAt:
+        example: "2024-01-15T10:30:00Z"
         type: string
       participants:
+        example:
+        - 64a1f2c3d4e5f6789abcdef1
+        - 64a1f2c3d4e5f6789abcdef3
         items:
           type: string
         type: array
       reportId:
+        example: 64a1f2c3d4e5f6789abcdef0
         type: string
     type: object
   handler.CreateReportRequest:
     properties:
       characteristics:
+        example:
+        - golden
+        - male
+        - large
         items:
           type: string
         type: array
       description:
+        example: Friendly dog, no collar, found near the park
         type: string
       isShelteredByReporter:
+        example: true
         type: boolean
-      lastSeenLocation:
-        $ref: '#/definitions/ad.GeoPoint'
+      latitude:
+        example: -23.5505
+        type: number
+      longitude:
+        example: -46.6333
+        type: number
       petType:
+        example: dog
         type: string
       photos:
+        example:
+        - https://bucket.s3.amazonaws.com/abc.jpg
         items:
           type: string
         type: array
       title:
+        example: Golden Retriever found in Pinheiros
         type: string
     type: object
   handler.ErrorResponse:
     properties:
       message:
+        example: invalid payload
         type: string
     type: object
   handler.HealthResponse:
     properties:
       status:
+        example: ok
+        type: string
+    type: object
+  handler.LocationResponse:
+    properties:
+      latitude:
+        example: -23.5505
+        type: number
+      longitude:
+        example: -46.6333
+        type: number
+    type: object
+  handler.LoginRequest:
+    properties:
+      email:
+        example: joao@example.com
+        type: string
+      password:
+        example: s3cr3tP@ss
         type: string
     type: object
   handler.MessageResponse:
     properties:
       body:
+        example: Is the dog still with you? I think it's mine.
         type: string
       conversationId:
+        example: 64a1f2c3d4e5f6789abcdef2
         type: string
       createdAt:
+        example: "2024-01-15T10:30:00Z"
         type: string
       id:
+        example: 64a1f2c3d4e5f6789abcdef4
         type: string
       senderId:
+        example: 64a1f2c3d4e5f6789abcdef1
         type: string
     type: object
   handler.OAuthCallbackResponse:
     properties:
       accessToken:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       refreshToken:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       user:
         $ref: '#/definitions/handler.UserResponse'
     type: object
+  handler.PagedMessagesResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/handler.MessageResponse'
+        type: array
+      page:
+        example: 1
+        type: integer
+      pageSize:
+        example: 50
+        type: integer
+    type: object
+  handler.PagedReportsResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/handler.ReportResponse'
+        type: array
+      page:
+        example: 1
+        type: integer
+      pageSize:
+        example: 20
+        type: integer
+    type: object
   handler.PatchReportRequest:
     properties:
       characteristics:
+        example:
+        - golden
+        - male
+        - large
         items:
           type: string
         type: array
       description:
+        example: Friendly dog, no collar, found near the park
         type: string
       isShelteredByReporter:
+        example: true
         type: boolean
-      lastSeenLocation:
-        $ref: '#/definitions/ad.GeoPoint'
+      latitude:
+        example: -23.5505
+        type: number
+      longitude:
+        example: -46.6333
+        type: number
       photos:
+        example:
+        - https://bucket.s3.amazonaws.com/abc.jpg
         items:
           type: string
         type: array
       title:
+        example: Golden Retriever found in Pinheiros
         type: string
     type: object
   handler.RefreshRequest:
     properties:
       refreshToken:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
     type: object
   handler.RefreshResponse:
     properties:
       accessToken:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
       refreshToken:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  handler.RegisterRequest:
+    properties:
+      email:
+        example: joao@example.com
+        type: string
+      name:
+        example: João Silva
+        type: string
+      password:
+        example: s3cr3tP@ss
         type: string
     type: object
   handler.ReportResponse:
     properties:
       characteristics:
+        example:
+        - golden
+        - male
+        - large
         items:
           type: string
         type: array
       createdAt:
         type: string
       description:
+        example: Friendly dog, no collar, found near the park
         type: string
       id:
+        example: 64a1f2c3d4e5f6789abcdef0
         type: string
       isShelteredByReporter:
+        example: true
         type: boolean
       lastSeenLocation:
-        $ref: '#/definitions/ad.GeoPoint'
+        $ref: '#/definitions/handler.LocationResponse'
       ownerId:
+        example: 64a1f2c3d4e5f6789abcdef1
         type: string
       petType:
+        example: dog
         type: string
       photos:
+        example:
+        - https://bucket.s3.amazonaws.com/abc.jpg
         items:
           type: string
         type: array
       status:
-        $ref: '#/definitions/ad.Status'
+        example: open
+        type: string
       title:
+        example: Golden Retriever found in Pinheiros
         type: string
       updatedAt:
         type: string
@@ -150,40 +245,58 @@ definitions:
   handler.SendMessageRequest:
     properties:
       body:
-        type: string
-    type: object
-  handler.StartConversationRequest:
-    properties:
-      ownerId:
+        example: Is the dog still with you? I think it's mine.
         type: string
     type: object
   handler.StartOAuthResponse:
     properties:
       authUrl:
+        example: https://accounts.google.com/o/oauth2/auth?...
+        type: string
+      state:
+        example: uuid.hmac
         type: string
     type: object
   handler.UpdateMeRequest:
     properties:
       city:
+        example: São Paulo
         type: string
       name:
+        example: João Silva
         type: string
       state:
+        example: SP
+        type: string
+    type: object
+  handler.UploadResponse:
+    properties:
+      id:
+        type: string
+      moderationStatus:
+        type: string
+      url:
         type: string
     type: object
   handler.UserResponse:
     properties:
       avatarUrl:
+        example: https://cdn.example.com/avatar.jpg
         type: string
       city:
+        example: São Paulo
         type: string
       email:
+        example: joao@example.com
         type: string
       id:
+        example: 64a1f2c3d4e5f6789abcdef0
         type: string
       name:
+        example: João Silva
         type: string
       state:
+        example: SP
         type: string
     type: object
 info:
@@ -205,6 +318,35 @@ paths:
       summary: Health check
       tags:
       - health
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.OAuthCallbackResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Login with email and password
+      tags:
+      - auth
   /v1/auth/logout:
     post:
       consumes:
@@ -238,6 +380,11 @@ paths:
       - description: Authorization code
         in: query
         name: code
+        required: true
+        type: string
+      - description: OAuth state for CSRF protection
+        in: query
+        name: state
         required: true
         type: string
       produces:
@@ -299,6 +446,35 @@ paths:
       summary: Refresh session tokens
       tags:
       - auth
+  /v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Registration payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.OAuthCallbackResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Register with email and password
+      tags:
+      - auth
   /v1/conversations:
     get:
       produces:
@@ -331,15 +507,21 @@ paths:
         name: id
         required: true
         type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 50, max 200)
+        in: query
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/handler.MessageResponse'
-            type: array
+            $ref: '#/definitions/handler.PagedMessagesResponse'
         "401":
           description: Unauthorized
           schema:
@@ -394,15 +576,34 @@ paths:
       - messaging
   /v1/reports:
     get:
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 20, max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: Latitude — when provided results are sorted by distance
+        in: query
+        name: lat
+        type: number
+      - description: Longitude — required when lat is set
+        in: query
+        name: lng
+        type: number
+      - description: Search radius in km (default 0.5 = 500m)
+        in: query
+        name: radius_km
+        type: number
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/handler.ReportResponse'
-            type: array
+            $ref: '#/definitions/handler.PagedReportsResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -415,6 +616,10 @@ paths:
     post:
       consumes:
       - application/json
+      description: |-
+        Creates a report for a found animal. Upload photos first via POST /v1/uploads
+        and pass the returned URLs in the photos array. The report is publicly visible
+        only after all photos pass Rekognition moderation (status changes to "approved").
       parameters:
       - description: Report payload
         in: body
@@ -430,11 +635,11 @@ paths:
           schema:
             $ref: '#/definitions/handler.ReportResponse'
         "400":
-          description: Bad Request
+          description: invalid payload
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: missing or invalid token
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "500":
@@ -461,8 +666,16 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handler.ReportResponse'
+        "401":
+          description: missing or invalid token
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
         "404":
-          description: Not Found
+          description: report not found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       security:
@@ -473,6 +686,8 @@ paths:
     patch:
       consumes:
       - application/json
+      description: Only the report owner can update. To replace photos, send all desired
+        URLs (old + new).
       parameters:
       - description: Report ID
         in: path
@@ -493,15 +708,19 @@ paths:
           schema:
             $ref: '#/definitions/handler.ReportResponse'
         "400":
-          description: Bad Request
+          description: invalid payload
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: missing or invalid token
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "403":
-          description: Forbidden
+          description: not the owner
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       security:
@@ -511,6 +730,8 @@ paths:
       - reports
   /v1/reports/{id}/archive:
     post:
+      description: Only the report owner can archive. Archived reports are hidden
+        from public listings.
       parameters:
       - description: Report ID
         in: path
@@ -525,11 +746,15 @@ paths:
           schema:
             $ref: '#/definitions/handler.ReportResponse'
         "401":
-          description: Unauthorized
+          description: missing or invalid token
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "403":
-          description: Forbidden
+          description: not the owner
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       security:
@@ -539,25 +764,20 @@ paths:
       - reports
   /v1/reports/{id}/conversations:
     post:
-      consumes:
-      - application/json
+      description: |-
+        Opens a conversation between the authenticated user and the report owner.
+        If a conversation for this report already exists for this user, the existing one is returned.
       parameters:
       - description: Report ID
         in: path
         name: id
         required: true
         type: string
-      - description: Conversation payload
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/handler.StartConversationRequest'
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
             $ref: '#/definitions/handler.ConversationResponse'
         "400":
@@ -568,17 +788,19 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
-        "500":
-          description: Internal Server Error
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Start conversation for a report
+      summary: Start (or resume) conversation about a report
       tags:
       - messaging
   /v1/reports/{id}/resolve:
     post:
+      description: Only the report owner can resolve. Use this when the pet was returned
+        to its owner.
       parameters:
       - description: Report ID
         in: path
@@ -593,11 +815,15 @@ paths:
           schema:
             $ref: '#/definitions/handler.ReportResponse'
         "401":
-          description: Unauthorized
+          description: missing or invalid token
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "403":
-          description: Forbidden
+          description: not the owner
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       security:
@@ -605,6 +831,48 @@ paths:
       summary: Mark report as resolved
       tags:
       - reports
+  /v1/uploads:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Uploads an image and returns its URL and moderation status.
+        The photo starts as "pending" and is approved/rejected asynchronously by Rekognition.
+        Only animal images are accepted. Use the returned URL in the report's photos field.
+      parameters:
+      - description: Image file (jpeg, png or webp, max 5 MB)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.UploadResponse'
+        "400":
+          description: unsupported file type or malformed request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: missing or invalid token
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "413":
+          description: file exceeds maximum allowed size
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a photo
+      tags:
+      - uploads
   /v1/users/me:
     delete:
       responses:

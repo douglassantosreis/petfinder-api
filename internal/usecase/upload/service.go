@@ -57,18 +57,18 @@ func NewService(storage Storage, repo Repository, moderator ModerationTrigger, m
 func (s *Service) MaxBytes() int64 { return s.maxBytes }
 
 // Upload validates, stores the file, and persists metadata linked to userID.
-func (s *Service) Upload(ctx context.Context, userID string, src io.Reader, size int64, contentType string) (string, error) {
+func (s *Service) Upload(ctx context.Context, userID string, src io.Reader, size int64, contentType string) (domain.Upload, error) {
 	if size > s.maxBytes {
-		return "", ErrFileTooLarge
+		return domain.Upload{}, ErrFileTooLarge
 	}
 	ext, ok := allowedMIME[contentType]
 	if !ok {
-		return "", ErrUnsupportedType
+		return domain.Upload{}, ErrUnsupportedType
 	}
 	filename := uuid.NewString() + ext
 	url, err := s.storage.Upload(ctx, filename, src)
 	if err != nil {
-		return "", err
+		return domain.Upload{}, err
 	}
 	meta := domain.Upload{
 		ID:               uuid.NewString(),
@@ -80,10 +80,10 @@ func (s *Service) Upload(ctx context.Context, userID string, src io.Reader, size
 	}
 	if err := s.repo.Create(ctx, meta); err != nil {
 		_ = s.storage.Delete(ctx, filename)
-		return "", err
+		return domain.Upload{}, err
 	}
 	s.moderator.ModerateAsync(meta)
-	return url, nil
+	return meta, nil
 }
 
 // CleanupOrphans deletes uploads not linked to any report older than age.

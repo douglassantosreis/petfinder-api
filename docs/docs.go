@@ -35,6 +35,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/auth/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login with email and password",
+                "parameters": [
+                    {
+                        "description": "Login payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.OAuthCallbackResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/auth/logout": {
             "post": {
                 "security": [
@@ -93,6 +138,13 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Authorization code",
                         "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "OAuth state for CSRF protection",
+                        "name": "state",
                         "in": "query",
                         "required": true
                     }
@@ -183,6 +235,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/auth/register": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register with email and password",
+                "parameters": [
+                    {
+                        "description": "Registration payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.OAuthCallbackResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/conversations": {
             "get": {
                 "security": [
@@ -243,16 +340,25 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 50, max 200)",
+                        "name": "page_size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/handler.MessageResponse"
-                            }
+                            "$ref": "#/definitions/handler.PagedMessagesResponse"
                         }
                     },
                     "401": {
@@ -345,14 +451,43 @@ const docTemplate = `{
                     "reports"
                 ],
                 "summary": "List open reports",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 20, max 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Latitude — when provided results are sorted by distance",
+                        "name": "lat",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude — required when lat is set",
+                        "name": "lng",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Search radius in km (default 0.5 = 500m)",
+                        "name": "radius_km",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/handler.ReportResponse"
-                            }
+                            "$ref": "#/definitions/handler.PagedReportsResponse"
                         }
                     },
                     "500": {
@@ -369,6 +504,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Creates a report for a found animal. Upload photos first via POST /v1/uploads\nand pass the returned URLs in the photos array. The report is publicly visible\nonly after all photos pass Rekognition moderation (status changes to \"approved\").",
                 "consumes": [
                     "application/json"
                 ],
@@ -398,13 +534,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "invalid payload",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "missing or invalid token",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -448,8 +584,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/handler.ReportResponse"
                         }
                     },
+                    "401": {
+                        "description": "missing or invalid token",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
                     "404": {
-                        "description": "Not Found",
+                        "description": "report not found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -462,6 +610,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Only the report owner can update. To replace photos, send all desired URLs (old + new).",
                 "consumes": [
                     "application/json"
                 ],
@@ -498,19 +647,25 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "invalid payload",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "missing or invalid token",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "not the owner",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -525,6 +680,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Only the report owner can archive. Archived reports are hidden from public listings.",
                 "produces": [
                     "application/json"
                 ],
@@ -549,13 +705,19 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "missing or invalid token",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "not the owner",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -570,16 +732,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Opens a conversation between the authenticated user and the report owner.\nIf a conversation for this report already exists for this user, the existing one is returned.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "messaging"
                 ],
-                "summary": "Start conversation for a report",
+                "summary": "Start (or resume) conversation about a report",
                 "parameters": [
                     {
                         "type": "string",
@@ -587,20 +747,11 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Conversation payload",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handler.StartConversationRequest"
-                        }
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.ConversationResponse"
                         }
@@ -617,8 +768,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -633,6 +784,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Only the report owner can resolve. Use this when the pet was returned to its owner.",
                 "produces": [
                     "application/json"
                 ],
@@ -657,13 +809,80 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "missing or invalid token",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "403": {
-                        "description": "Forbidden",
+                        "description": "not the owner",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/uploads": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Uploads an image and returns its URL and moderation status.\nThe photo starts as \"pending\" and is approved/rejected asynchronously by Rekognition.\nOnly animal images are accepted. Use the returned URL in the report's photos field.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "uploads"
+                ],
+                "summary": "Upload a photo",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Image file (jpeg, png or webp, max 5 MB)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.UploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "unsupported file type or malformed request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "missing or invalid token",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "file exceeds maximum allowed size",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -791,50 +1010,30 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "ad.GeoPoint": {
-            "type": "object",
-            "properties": {
-                "coordinates": {
-                    "type": "array",
-                    "items": {
-                        "type": "number"
-                    }
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "ad.Status": {
-            "type": "string",
-            "enum": [
-                "open",
-                "resolved",
-                "archived"
-            ],
-            "x-enum-varnames": [
-                "StatusOpen",
-                "StatusResolved",
-                "StatusArchived"
-            ]
-        },
         "handler.ConversationResponse": {
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef2"
                 },
                 "lastMessageAt": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-15T10:30:00Z"
                 },
                 "participants": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "64a1f2c3d4e5f6789abcdef1",
+                        "64a1f2c3d4e5f6789abcdef3"
+                    ]
                 },
                 "reportId": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef0"
                 }
             }
         },
@@ -845,28 +1044,45 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "golden",
+                        "male",
+                        "large"
+                    ]
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Friendly dog, no collar, found near the park"
                 },
                 "isShelteredByReporter": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
-                "lastSeenLocation": {
-                    "$ref": "#/definitions/ad.GeoPoint"
+                "latitude": {
+                    "type": "number",
+                    "example": -23.5505
+                },
+                "longitude": {
+                    "type": "number",
+                    "example": -46.6333
                 },
                 "petType": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "dog"
                 },
                 "photos": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "https://bucket.s3.amazonaws.com/abc.jpg"
+                    ]
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Golden Retriever found in Pinheiros"
                 }
             }
         },
@@ -874,7 +1090,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "invalid payload"
                 }
             }
         },
@@ -882,7 +1099,34 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "ok"
+                }
+            }
+        },
+        "handler.LocationResponse": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number",
+                    "example": -23.5505
+                },
+                "longitude": {
+                    "type": "number",
+                    "example": -46.6333
+                }
+            }
+        },
+        "handler.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "joao@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "s3cr3tP@ss"
                 }
             }
         },
@@ -890,19 +1134,24 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "body": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Is the dog still with you? I think it's mine."
                 },
                 "conversationId": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef2"
                 },
                 "createdAt": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2024-01-15T10:30:00Z"
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef4"
                 },
                 "senderId": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef1"
                 }
             }
         },
@@ -910,13 +1159,53 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "accessToken": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
                 "refreshToken": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
                 "user": {
                     "$ref": "#/definitions/handler.UserResponse"
+                }
+            }
+        },
+        "handler.PagedMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.MessageResponse"
+                    }
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "pageSize": {
+                    "type": "integer",
+                    "example": 50
+                }
+            }
+        },
+        "handler.PagedReportsResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.ReportResponse"
+                    }
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "pageSize": {
+                    "type": "integer",
+                    "example": 20
                 }
             }
         },
@@ -927,25 +1216,41 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "golden",
+                        "male",
+                        "large"
+                    ]
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Friendly dog, no collar, found near the park"
                 },
                 "isShelteredByReporter": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
-                "lastSeenLocation": {
-                    "$ref": "#/definitions/ad.GeoPoint"
+                "latitude": {
+                    "type": "number",
+                    "example": -23.5505
+                },
+                "longitude": {
+                    "type": "number",
+                    "example": -46.6333
                 },
                 "photos": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "https://bucket.s3.amazonaws.com/abc.jpg"
+                    ]
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Golden Retriever found in Pinheiros"
                 }
             }
         },
@@ -953,7 +1258,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "refreshToken": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 }
             }
         },
@@ -961,10 +1267,29 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "accessToken": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 },
                 "refreshToken": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "handler.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "joao@example.com"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "João Silva"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "s3cr3tP@ss"
                 }
             }
         },
@@ -975,40 +1300,55 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "golden",
+                        "male",
+                        "large"
+                    ]
                 },
                 "createdAt": {
                     "type": "string"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Friendly dog, no collar, found near the park"
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef0"
                 },
                 "isShelteredByReporter": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                 },
                 "lastSeenLocation": {
-                    "$ref": "#/definitions/ad.GeoPoint"
+                    "$ref": "#/definitions/handler.LocationResponse"
                 },
                 "ownerId": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef1"
                 },
                 "petType": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "dog"
                 },
                 "photos": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "https://bucket.s3.amazonaws.com/abc.jpg"
+                    ]
                 },
                 "status": {
-                    "$ref": "#/definitions/ad.Status"
+                    "type": "string",
+                    "example": "open"
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Golden Retriever found in Pinheiros"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -1019,15 +1359,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "body": {
-                    "type": "string"
-                }
-            }
-        },
-        "handler.StartConversationRequest": {
-            "type": "object",
-            "properties": {
-                "ownerId": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Is the dog still with you? I think it's mine."
                 }
             }
         },
@@ -1035,7 +1368,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "authUrl": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://accounts.google.com/o/oauth2/auth?..."
+                },
+                "state": {
+                    "type": "string",
+                    "example": "uuid.hmac"
                 }
             }
         },
@@ -1043,12 +1381,29 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "city": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "São Paulo"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "João Silva"
                 },
                 "state": {
+                    "type": "string",
+                    "example": "SP"
+                }
+            }
+        },
+        "handler.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "moderationStatus": {
+                    "type": "string"
+                },
+                "url": {
                     "type": "string"
                 }
             }
@@ -1057,22 +1412,28 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatarUrl": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://cdn.example.com/avatar.jpg"
                 },
                 "city": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "São Paulo"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "joao@example.com"
                 },
                 "id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "64a1f2c3d4e5f6789abcdef0"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "João Silva"
                 },
                 "state": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "SP"
                 }
             }
         }
