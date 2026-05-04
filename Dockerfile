@@ -13,6 +13,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /bin/api /app/api
 
 EXPOSE 8080
