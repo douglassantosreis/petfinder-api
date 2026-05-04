@@ -1,0 +1,52 @@
+services:
+  - name: petfinder-api
+    type: web
+    runtime: docker
+    plan: free
+    region: ohio
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 10
+
+    envVars:
+      - key: PORT
+        value: "8080"
+
+      # MongoDB Atlas — cole a connection string do Atlas
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DATABASE
+        value: petfinder
+
+      # JWT
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OAUTH_STATE_SECRET
+        generateValue: true
+
+      # Google OAuth
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URL
+        sync: false
+
+      # Storage — use S3/Cloudflare R2 (disco local não persiste no Render free)
+      - key: STORAGE_PROVIDER
+        value: s3
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_REGION
+        value: auto        # "auto" para Cloudflare R2; use "us-east-1" para AWS
+      - key: S3_ENDPOINT
+        sync: false        # vazio para AWS; URL do R2 para Cloudflare
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: UPLOAD_BASE_URL
+        sync: false        # URL pública do CDN ou do bucket
+      - key: MAX_UPLOAD_MB
+        value: "5"
