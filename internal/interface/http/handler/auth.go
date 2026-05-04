@@ -57,8 +57,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param payload body LoginRequest true "Login payload"
 // @Success 200 {object} OAuthCallbackResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "missing fields"
+// @Failure 401 {object} ErrorResponse "invalid email or password"
+// @Failure 423 {object} ErrorResponse "account suspended for policy violation"
 // @Router /v1/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
@@ -68,6 +69,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	u, accessToken, refreshToken, err := h.service.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, user.ErrUserBanned) {
+			http.Error(w, err.Error(), http.StatusLocked)
+			return
+		}
 		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
@@ -97,8 +102,9 @@ func (h *AuthHandler) StartGoogleOAuth(w http.ResponseWriter, _ *http.Request) {
 // @Param code query string true "Authorization code"
 // @Param state query string true "OAuth state for CSRF protection"
 // @Success 200 {object} OAuthCallbackResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "missing code or OAuth error"
+// @Failure 401 {object} ErrorResponse "invalid state or token exchange failed"
+// @Failure 423 {object} ErrorResponse "account suspended for policy violation"
 // @Router /v1/auth/oauth/google/callback [get]
 func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	if oauthErr := r.URL.Query().Get("error"); oauthErr != "" {
@@ -119,6 +125,10 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	u, accessToken, refreshToken, err := h.service.OAuthCallback(r.Context(), code, state)
 	if err != nil {
+		if errors.Is(err, user.ErrUserBanned) {
+			http.Error(w, err.Error(), http.StatusLocked)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
@@ -136,8 +146,9 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param payload body RefreshRequest true "Refresh token"
 // @Success 200 {object} RefreshResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "missing refresh token"
+// @Failure 401 {object} ErrorResponse "invalid or expired refresh token"
+// @Failure 423 {object} ErrorResponse "account suspended for policy violation"
 // @Router /v1/auth/refresh [post]
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
@@ -147,6 +158,10 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 	accessToken, refreshToken, err := h.service.Refresh(r.Context(), req.RefreshToken)
 	if err != nil {
+		if errors.Is(err, user.ErrUserBanned) {
+			http.Error(w, err.Error(), http.StatusLocked)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}

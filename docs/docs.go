@@ -66,13 +66,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "missing fields",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "invalid email or password",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "423": {
+                        "description": "account suspended for policy violation",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -157,13 +163,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "missing code or OAuth error",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "invalid state or token exchange failed",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "423": {
+                        "description": "account suspended for policy violation",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -221,13 +233,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "missing refresh token",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "invalid or expired refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "423": {
+                        "description": "account suspended for policy violation",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -922,6 +940,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
+                    },
+                    "423": {
+                        "description": "account suspended for policy violation",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
                     }
                 }
             },
@@ -1001,6 +1025,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "423": {
+                        "description": "account suspended for policy violation",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }

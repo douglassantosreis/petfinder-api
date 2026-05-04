@@ -67,7 +67,7 @@ func (m *RekognitionModerator) Moderate(ctx context.Context, filename string) (m
 	if len(modOut.ModerationLabels) > 0 {
 		reason := aws.ToString(modOut.ModerationLabels[0].Name)
 		slog.Info("image rejected: inappropriate content", "filename", filename, "reason", reason)
-		return moderationuc.Result{Approved: false, Reason: "inappropriate content: " + reason}, nil
+		return moderationuc.Result{Approved: false, Reason: "inappropriate content: " + reason, ExplicitContent: true}, nil
 	}
 
 	labelsOut, err := m.client.DetectLabels(ctx, &rekognition.DetectLabelsInput{

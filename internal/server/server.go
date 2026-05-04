@@ -63,7 +63,7 @@ func New(ctx context.Context, cfg config.Config) (*Server, error) {
 	googleProvider := oauthinfra.NewGoogleProvider(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURL)
 	stateManager := oauthinfra.NewStateManager(cfg.OAuthStateSigningSecret)
 
-	moderationService := moderationuc.NewService(moderator, uploadRepo, adRepo)
+	moderationService := moderationuc.NewService(moderator, uploadRepo, adRepo, userRepo)
 	authService := authuc.NewService(userRepo, googleProvider, stateManager, tokenProvider, time.Duration(cfg.AccessTokenTTLMinutes)*time.Minute, time.Duration(cfg.RefreshTokenTTLHours)*time.Hour)
 	userService := useruc.NewService(userRepo)
 	adService := aduc.NewService(adRepo, uploadRepo)
@@ -78,6 +78,11 @@ func New(ctx context.Context, cfg config.Config) (*Server, error) {
 
 	rateLimiter := middleware.NewRateLimiter(30, time.Minute)
 
+	// auth wraps every authenticated route with token validation + ban check.
+	auth := func(next http.Handler) http.Handler {
+		return middleware.AuthRequired(tokenProvider, userRepo, next)
+	}
+
 	go runOrphanCleanup(uploadService)
 
 	mux := http.NewServeMux()
@@ -90,25 +95,25 @@ func New(ctx context.Context, cfg config.Config) (*Server, error) {
 	mux.Handle("GET /v1/auth/oauth/google/start", rateLimiter.Middleware(http.HandlerFunc(authHandler.StartGoogleOAuth)))
 	mux.Handle("GET /v1/auth/oauth/google/callback", rateLimiter.Middleware(http.HandlerFunc(authHandler.GoogleCallback)))
 	mux.Handle("POST /v1/auth/refresh", rateLimiter.Middleware(http.HandlerFunc(authHandler.Refresh)))
-	mux.Handle("POST /v1/auth/logout", middleware.AuthRequired(tokenProvider, rateLimiter.Middleware(http.HandlerFunc(authHandler.Logout))))
+	mux.Handle("POST /v1/auth/logout", auth(rateLimiter.Middleware(http.HandlerFunc(authHandler.Logout))))
 
-	mux.Handle("GET /v1/users/me", middleware.AuthRequired(tokenProvider, http.HandlerFunc(userHandler.Me)))
-	mux.Handle("PATCH /v1/users/me", middleware.AuthRequired(tokenProvider, http.HandlerFunc(userHandler.UpdateMe)))
-	mux.Handle("DELETE /v1/users/me", middleware.AuthRequired(tokenProvider, http.HandlerFunc(userHandler.DeleteMe)))
+	mux.Handle("GET /v1/users/me", auth(http.HandlerFunc(userHandler.Me)))
+	mux.Handle("PATCH /v1/users/me", auth(http.HandlerFunc(userHandler.UpdateMe)))
+	mux.Handle("DELETE /v1/users/me", auth(http.HandlerFunc(userHandler.DeleteMe)))
 
-	mux.Handle("POST /v1/uploads", middleware.AuthRequired(tokenProvider, http.HandlerFunc(uploadHandler.Upload)))
+	mux.Handle("POST /v1/uploads", auth(http.HandlerFunc(uploadHandler.Upload)))
 
-	mux.Handle("POST /v1/reports", middleware.AuthRequired(tokenProvider, http.HandlerFunc(reportHandler.Create)))
-	mux.Handle("GET /v1/reports/{id}", middleware.AuthRequired(tokenProvider, http.HandlerFunc(reportHandler.GetByID)))
-	mux.Handle("GET /v1/reports", middleware.AuthRequired(tokenProvider, http.HandlerFunc(reportHandler.List)))
-	mux.Handle("PATCH /v1/reports/{id}", middleware.AuthRequired(tokenProvider, http.HandlerFunc(reportHandler.Patch)))
-	mux.Handle("POST /v1/reports/{id}/resolve", middleware.AuthRequired(tokenProvider, http.HandlerFunc(reportHandler.Resolve)))
-	mux.Handle("POST /v1/reports/{id}/archive", middleware.AuthRequired(tokenProvider, http.HandlerFunc(reportHandler.Archive)))
+	mux.Handle("POST /v1/reports", auth(http.HandlerFunc(reportHandler.Create)))
+	mux.Handle("GET /v1/reports/{id}", auth(http.HandlerFunc(reportHandler.GetByID)))
+	mux.Handle("GET /v1/reports", auth(http.HandlerFunc(reportHandler.List)))
+	mux.Handle("PATCH /v1/reports/{id}", auth(http.HandlerFunc(reportHandler.Patch)))
+	mux.Handle("POST /v1/reports/{id}/resolve", auth(http.HandlerFunc(reportHandler.Resolve)))
+	mux.Handle("POST /v1/reports/{id}/archive", auth(http.HandlerFunc(reportHandler.Archive)))
 
-	mux.Handle("POST /v1/reports/{id}/conversations", middleware.AuthRequired(tokenProvider, http.HandlerFunc(messageHandler.StartConversation)))
-	mux.Handle("GET /v1/conversations", middleware.AuthRequired(tokenProvider, http.HandlerFunc(messageHandler.ListConversations)))
-	mux.Handle("GET /v1/conversations/{id}/messages", middleware.AuthRequired(tokenProvider, http.HandlerFunc(messageHandler.ListMessages)))
-	mux.Handle("POST /v1/conversations/{id}/messages", middleware.AuthRequired(tokenProvider, http.HandlerFunc(messageHandler.SendMessage)))
+	mux.Handle("POST /v1/reports/{id}/conversations", auth(http.HandlerFunc(messageHandler.StartConversation)))
+	mux.Handle("GET /v1/conversations", auth(http.HandlerFunc(messageHandler.ListConversations)))
+	mux.Handle("GET /v1/conversations/{id}/messages", auth(http.HandlerFunc(messageHandler.ListMessages)))
+	mux.Handle("POST /v1/conversations/{id}/messages", auth(http.HandlerFunc(messageHandler.SendMessage)))
 
 	return &Server{handler: middleware.Recovery(middleware.RequestLogger(mux))}, nil
 }

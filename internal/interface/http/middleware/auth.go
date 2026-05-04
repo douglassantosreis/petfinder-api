@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -14,7 +15,11 @@ type AccessTokenParser interface {
 	ParseAccessToken(token string) (string, error)
 }
 
-func AuthRequired(parser AccessTokenParser, next http.Handler) http.Handler {
+type UserBanChecker interface {
+	IsBanned(ctx context.Context, userID string) (bool, error)
+}
+
+func AuthRequired(parser AccessTokenParser, banChecker UserBanChecker, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
@@ -25,6 +30,13 @@ func AuthRequired(parser AccessTokenParser, next http.Handler) http.Handler {
 		userID, err := parser.ParseAccessToken(token)
 		if err != nil {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+		banned, err := banChecker.IsBanned(r.Context(), userID)
+		if err != nil {
+			slog.Warn("auth: ban check failed", "userID", userID, "error", err)
+		} else if banned {
+			http.Error(w, "account suspended for policy violation", http.StatusLocked)
 			return
 		}
 		ctx := context.WithValue(r.Context(), userIDKey, userID)

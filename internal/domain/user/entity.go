@@ -16,7 +16,10 @@ type Status string
 const (
 	StatusActive   Status = "active"
 	StatusInactive Status = "inactive"
+	StatusBanned   Status = "banned"
 )
+
+var ErrUserBanned = errors.New("account suspended for policy violation")
 
 type User struct {
 	ID           string    `bson:"_id"          json:"id"`

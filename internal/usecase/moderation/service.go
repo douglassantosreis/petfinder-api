@@ -14,8 +14,9 @@ type Moderator interface {
 
 // Result is the moderation outcome returned by a Moderator.
 type Result struct {
-	Approved bool
-	Reason   string
+	Approved        bool
+	Reason          string
+	ExplicitContent bool // true when inappropriate content was detected → triggers user ban
 }
 
 type UploadRepository interface {
@@ -27,14 +28,19 @@ type ReportRepository interface {
 	SetVisible(ctx context.Context, reportID string, visible bool) error
 }
 
+type UserBanner interface {
+	Ban(ctx context.Context, userID string) error
+}
+
 type Service struct {
 	moderator Moderator
 	uploads   UploadRepository
 	reports   ReportRepository
+	users     UserBanner
 }
 
-func NewService(moderator Moderator, uploads UploadRepository, reports ReportRepository) *Service {
-	return &Service{moderator: moderator, uploads: uploads, reports: reports}
+func NewService(moderator Moderator, uploads UploadRepository, reports ReportRepository, users UserBanner) *Service {
+	return &Service{moderator: moderator, uploads: uploads, reports: reports, users: users}
 }
 
 // ModerateAsync runs moderation in a goroutine — the upload response is not blocked.
@@ -64,6 +70,13 @@ func (s *Service) moderate(ctx context.Context, upload uploadDomain.Upload) erro
 	}
 
 	slog.Info("moderation result", "uploadId", upload.ID, "status", status, "reason", reason)
+
+	if result.ExplicitContent {
+		slog.Warn("explicit content detected, banning user", "userID", upload.UserID, "uploadId", upload.ID)
+		if err := s.users.Ban(ctx, upload.UserID); err != nil {
+			slog.Error("failed to ban user", "userID", upload.UserID, "error", err)
+		}
+	}
 
 	// When approved and linked to a report, check if all photos are now approved.
 	if status == uploadDomain.ModerationApproved && upload.ReportID != "" {

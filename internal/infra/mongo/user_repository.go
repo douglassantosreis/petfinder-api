@@ -53,13 +53,14 @@ func (r *UserRepository) UpsertByOAuth(ctx context.Context, input domain.User) (
 			"name":      input.Name,
 			"email":     input.Email,
 			"avatarUrl": input.AvatarURL,
-			"status":    domain.StatusActive,
 			"updatedAt": input.UpdatedAt,
+			// status is intentionally NOT set here — banned users must stay banned
 		},
 		"$setOnInsert": bson.M{
 			"_id":           input.ID,
 			"oauthProvider": input.OAuthProvider,
 			"oauthSubject":  input.OAuthSubject,
+			"status":        domain.StatusActive,
 			"createdAt":     input.CreatedAt,
 		},
 	}
@@ -131,4 +132,31 @@ func (r *UserRepository) SoftDelete(ctx context.Context, id string, at time.Time
 		},
 	})
 	return err
+}
+
+func (r *UserRepository) Ban(ctx context.Context, id string) error {
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{
+		"$set": bson.M{
+			"status":    domain.StatusBanned,
+			"updatedAt": time.Now().UTC(),
+		},
+	})
+	return err
+}
+
+func (r *UserRepository) IsBanned(ctx context.Context, id string) (bool, error) {
+	var out struct {
+		Status domain.Status `bson:"status"`
+	}
+	err := r.collection.FindOne(ctx,
+		bson.M{"_id": id},
+		options.FindOne().SetProjection(bson.M{"status": 1}),
+	).Decode(&out)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return out.Status == domain.StatusBanned, nil
 }

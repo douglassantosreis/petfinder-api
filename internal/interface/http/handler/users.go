@@ -22,6 +22,7 @@ func NewUserHandler(service *useruc.Service) *UserHandler {
 // @Produce json
 // @Success 200 {object} UserResponse
 // @Failure 401 {object} ErrorResponse
+// @Failure 423 {object} ErrorResponse "account suspended for policy violation"
 // @Failure 404 {object} ErrorResponse
 // @Router /v1/users/me [get]
 func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +45,7 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} UserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
+// @Failure 423 {object} ErrorResponse "account suspended for policy violation"
 // @Failure 404 {object} ErrorResponse
 // @Router /v1/users/me [patch]
 func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {

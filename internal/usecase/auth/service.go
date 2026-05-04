@@ -99,8 +99,10 @@ func (s *Service) Login(ctx context.Context, email, password string) (user.User,
 	if err != nil {
 		return user.User{}, "", "", user.ErrInvalidCredentials
 	}
+	if u.Status == user.StatusBanned {
+		return user.User{}, "", "", user.ErrUserBanned
+	}
 	if u.PasswordHash == "" {
-		// OAuth-only account — cannot log in with password
 		return user.User{}, "", "", user.ErrInvalidCredentials
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
@@ -139,6 +141,9 @@ func (s *Service) OAuthCallback(ctx context.Context, code, state string) (user.U
 	if err != nil {
 		return user.User{}, "", "", err
 	}
+	if u.Status == user.StatusBanned {
+		return user.User{}, "", "", user.ErrUserBanned
+	}
 	return s.issueTokens(u)
 }
 
@@ -146,6 +151,10 @@ func (s *Service) Refresh(ctx context.Context, currentRefreshToken string) (stri
 	userID, _, _, err := s.tokenMgr.ParseRefreshToken(ctx, currentRefreshToken)
 	if err != nil {
 		return "", "", errors.New("invalid refresh token")
+	}
+	u, err := s.users.GetByID(ctx, userID)
+	if err != nil || u.Status == user.StatusBanned {
+		return "", "", user.ErrUserBanned
 	}
 	_, newToken, err := s.tokenMgr.RotateRefreshToken(ctx, currentRefreshToken, s.refreshTTL)
 	if err != nil {
